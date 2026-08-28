@@ -1,6 +1,6 @@
-# ai-experiments
+# Sinan's Mad Scientist Repo
 
-A home for small, self-contained AI/LLM experiments — each one a runnable notebook with a clear question and honest charts.
+A single place for the random ideas that come to me on AI/ML stuff. The goal is for each one to be a runnable notebook so anyone can reproduce or just see the pathway + results.
 
 ## Setup
 
@@ -11,7 +11,7 @@ cp .env.example .env   # then fill in your keys
 pip install -r requirements.txt
 ```
 
-`FIREWORKS_API_KEY` is required; `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are optional (those models are skipped if unset).
+`FIREWORKS_API_KEY` is almost always required. Others I'll call out in the notebook.
 
 ## Experiments
 
@@ -19,4 +19,4 @@ pip install -r requirements.txt
 |---|---|---|
 | Reasoning effort on UiPad vision QA | Does cranking up a model's reasoning effort actually improve accuracy? | [experiments/reasoning-effort-uipad](experiments/reasoning-effort-uipad/) |
 
-More to come.
+Always more to come.
