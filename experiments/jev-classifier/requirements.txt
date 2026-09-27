@@ -1,0 +1,12 @@
+fireworks-ai
+datasets
+transformers
+huggingface_hub
+nbformat
+python-dotenv
+requests
+numpy
+pandas
+matplotlib
+tqdm
+torch

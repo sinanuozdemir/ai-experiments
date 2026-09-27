@@ -15,8 +15,10 @@ pip install -r requirements.txt
 
 ## Experiments
 
-| Experiment | Question | Link |
+| Experiment name | Question it answers | Experiment folder |
 |---|---|---|
 | Reasoning effort on UiPad vision QA | Does cranking up a model's reasoning effort actually improve accuracy? | [experiments/reasoning-effort-uipad](experiments/reasoning-effort-uipad/) |
+| Jev-style decision classifiers | Can small fine-tuned open models match Jev/Tev as calibrated decision engines on the Decision Index? | [experiments/jev-classifier](experiments/jev-classifier/) |
+| Difficulty router as LangChain middleware | Does routing easy tasks to a cheap model and hard ones to a strong model cut cost per successful task without losing accuracy? | [experiments/difficulty-router-langchain](experiments/difficulty-router-langchain/) |
 
 Always more to come.
