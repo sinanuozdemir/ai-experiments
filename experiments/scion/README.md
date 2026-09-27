@@ -30,6 +30,11 @@ Not a certified board entry: we rebuilt the suite ourselves (same question ids, 
 the top-5 logprob limit slightly understates ToolRet/BRIGHT, and we declare train-split overlap on
 BANKING77 and CLINC150. Trained-on test items count as wrong.
 
+![Where Scion would sit on the Decision Index board (unofficial)](figures/board_with_scion_unofficial.png)
+
+*Unofficial placement: the board's live 0.2.1 scores with Scion (red, with calibration temperature)
+inserted from our own run. Not certified by the board.*
+
 ![Decision Index 0.2.1: every model, overall and by area](figures/decision_index_all_models.png)
 
 *Top: overall index (hatched = same model with the calibration temperature, which barely moves the
@@ -135,7 +140,6 @@ Decision Index suite is dropped before training (319 of 51,300 rows).
 | [scion_v2.ipynb](scion_v2.ipynb)                 | v2: Qwen3 4B, LoRA rank 64                                                                                     |
 | [scion_v3.ipynb](scion_v3.ipynb)                 | v3: v2 + 13 external look-alike datasets, contamination filter, temperature                                    |
 | [scion_v4.ipynb](scion_v4.ipynb)                 | v4: v3's data on Qwen3.5 9B, both prompt styles                                                                |
-| [scion_vs_tev.ipynb](scion_vs_tev.ipynb)                               | Together Tev on our eval rows                                                                                  |
 | [scion_embedder_baselines.ipynb](scion_embedder_baselines.ipynb)                           | untrained 8B embedder and reranker baselines; fine-tunes the 4B embedder (it overfit); no reranker fine-tuning |
 | [scion_decision_index_single.ipynb](scion_decision_index_single.ipynb)               | first Decision Index run (single model)                                                                        |
 | [scion_decision_index.ipynb](scion_decision_index.ipynb) | all models on the Decision Index vs Jev and Tev                                                                |
@@ -147,8 +151,8 @@ engines), `di_shard.py` (parallel runner), `calibration.py` (temperature scaling
 
 ## Setup
 
-- Keys from the repo-root `.env`: `FIREWORKS_API_KEY`, `FIREWORKS_ACCOUNT_ID`, `HF_TOKEN`,
-`TOGETHER_API_KEY` (Tev comparison).
+- Keys from the repo-root `.env`: `FIREWORKS_API_KEY`, `FIREWORKS_ACCOUNT_ID`, `HF_TOKEN`. Jev and Tev
+numbers come from the Decision Index board's published data, so no Together key is needed.
 - `pip install -r requirements.txt` (this folder). The Decision Index notebooks clone and install the
 board's kit ([apolinario/decision-index](https://github.com/apolinario/decision-index)) themselves.
 - `scion_embedder_baselines.ipynb` also needs a checkout of the [Fireworks cookbook](https://github.com/fw-ai/cookbook)
