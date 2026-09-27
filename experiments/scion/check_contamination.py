@@ -8,7 +8,7 @@ Three checks, strongest first:
   3. source-level: for the benchmarks built from datasets we also trained on (BANKING77, CLINC150),
      exact utterance match against the raw test files the suite is built from.
 
-Usage: python check_contamination.py --train jev_runs/5f25c2/train_plain.jsonl \
+Usage: python check_contamination.py --train runs/5f25c2/train_plain.jsonl \
            [--suite di_suite-0.2] [--raw di_work/artifacts/benchmark-suite/raw]
 """
 

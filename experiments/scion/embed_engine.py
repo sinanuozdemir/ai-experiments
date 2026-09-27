@@ -1,6 +1,6 @@
 """Decision Index engines for the zero-shot Qwen3 embedder and reranker on Fireworks serverless.
 
-Same text construction as jev_embedder.ipynb: the task becomes an instructed query, each option becomes
+Same text construction as scion_embedder_baselines.ipynb: the task becomes an instructed query, each option becomes
 "key: description". The embedder scores options by cosine similarity to the query; the reranker scores each
 (query, option) pair. Scores become probabilities with softmax(score / T), where T was fit on our own dev rows.
 Every option gets a score directly, so there is no top-k limit and nothing is estimated.

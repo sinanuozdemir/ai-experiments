@@ -1,9 +1,12 @@
-# Jev-style decision classifiers on Fireworks
+# Scion: Jev-style decision classifiers on Fireworks
 
 Can we fine-tune small open models into Jev-style "decision engines" (read a JSON task with `state`,
 `question` and lettered `options`, answer with one letter, and give honest probabilities), and how do
 they compare with Together's Tev, Jev itself, and off-the-shelf embedders on the public
 [Decision Index](https://huggingface.co/spaces/multimodalart/jev-decision-index)?
+
+The classifier is **Scion** (Sinan's Calibrated Input/Output Normalizer). A scion is also the young
+shoot grafted onto an established plant, which is what a LoRA fine-tune is to its base model.
 
 ## Headline results (Decision Index 0.2.1, the board's default)
 
@@ -11,11 +14,11 @@ they compare with Together's Tev, Jev itself, and off-the-shelf embedders on the
 | model name                  | base model           | Decision Index score | why it matters                                                             |
 | --------------------------- | -------------------- | -------------------- | -------------------------------------------------------------------------- |
 | Jev (board)                 | unpublished          | 57.9                 | reference                                                                  |
-| **ours v4, prompt twice**   | Qwen3.5 9B, LoRA r64 | **45.9**             | 2nd of all models at 10B or below; beats Tev on 29 of 33 shared benchmarks |
-| ours v4, prompt once        | Qwen3.5 9B           | 41.3                 | prompt repetition adds ~4.6 points at 9B                                   |
-| ours v3, prompt twice       | Qwen3 4B             | 31.0                 | beats Tev at the same size on an older base                                |
+| **Scion v4, prompt twice**  | Qwen3.5 9B, LoRA r64 | **45.9**             | 2nd of all models at 10B or below; beats Tev on 29 of 33 shared benchmarks |
+| Scion v4, prompt once       | Qwen3.5 9B           | 41.3                 | prompt repetition adds ~4.6 points at 9B                                   |
+| Scion v3, prompt twice      | Qwen3 4B             | 31.0                 | beats Tev at the same size on an older base                                |
 | Tev1-4B (board)             | Qwen3.5 4B           | 29.2                 |                                                                            |
-| ours v2, prompt twice       | Qwen3 4B             | 28.1                 |                                                                            |
+| Scion v2, prompt twice      | Qwen3 4B             | 28.1                 |                                                                            |
 | untrained Qwen3 reranker 8B |                      | 21.8                 |                                                                            |
 | untrained Qwen3 embedder 8B |                      | 16.0                 | best on our held-out tasks, weak on reasoning                              |
 
@@ -121,23 +124,25 @@ plus 3 random others and "none", so every question has at most 5 options.
 - *Contamination filter (v3, v4).* Any training row sharing an exact passage or a 13-word run with the
 Decision Index suite is dropped before training (319 of 51,300 rows).
 
+
+
 ## Notebooks, in order
 
 
-| notebook file                                                      | what it does                                                                |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| [jev_classifier.ipynb](jev_classifier.ipynb)                       | v1: Qwen3 0.6B, ~26 tasks, prompt once vs twice, calibration (ECE)          |
-| [jev_classifier_v2.ipynb](jev_classifier_v2.ipynb)                 | v2: Qwen3 4B, LoRA rank 64                                                  |
-| [jev_classifier_v3.ipynb](jev_classifier_v3.ipynb)                 | v3: v2 + 13 external look-alike datasets, contamination filter, temperature |
-| [jev_classifier_v4.ipynb](jev_classifier_v4.ipynb)                 | v4: v3's data on Qwen3.5 9B, both prompt styles                             |
-| [jev_vs_tev.ipynb](jev_vs_tev.ipynb)                               | Together Tev on our eval rows                                               |
-| [jev_embedder.ipynb](jev_embedder.ipynb)                           | untrained 8B embedder and reranker baselines; fine-tunes the 4B embedder (it overfit); no reranker fine-tuning |
-| [jev_decision_index.ipynb](jev_decision_index.ipynb)               | first Decision Index run (single model)                                     |
-| [jev_decision_index_matrix.ipynb](jev_decision_index_matrix.ipynb) | all models on the Decision Index vs Jev and Tev                             |
+| notebook file                                                      | what it does                                                                                                   |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| [scion_v1.ipynb](scion_v1.ipynb)                       | v1: Qwen3 0.6B, ~26 tasks, prompt once vs twice, calibration (ECE)                                             |
+| [scion_v2.ipynb](scion_v2.ipynb)                 | v2: Qwen3 4B, LoRA rank 64                                                                                     |
+| [scion_v3.ipynb](scion_v3.ipynb)                 | v3: v2 + 13 external look-alike datasets, contamination filter, temperature                                    |
+| [scion_v4.ipynb](scion_v4.ipynb)                 | v4: v3's data on Qwen3.5 9B, both prompt styles                                                                |
+| [scion_vs_tev.ipynb](scion_vs_tev.ipynb)                               | Together Tev on our eval rows                                                                                  |
+| [scion_embedder_baselines.ipynb](scion_embedder_baselines.ipynb)                           | untrained 8B embedder and reranker baselines; fine-tunes the 4B embedder (it overfit); no reranker fine-tuning |
+| [scion_decision_index_single.ipynb](scion_decision_index_single.ipynb)               | first Decision Index run (single model)                                                                        |
+| [scion_decision_index.ipynb](scion_decision_index.ipynb) | all models on the Decision Index vs Jev and Tev                                                                |
 
 
-Helpers: `jev_lib.py` (dataset loaders), `jev_di_engine.py` / `jev_di_embed_engine.py` (Decision Index
-engines), `jev_di_shard.py` (parallel runner), `jev_calibration.py` (temperature scaling),
+Helpers: `scion_data.py` (dataset loaders), `scion_engine.py` / `embed_engine.py` (Decision Index
+engines), `di_shard.py` (parallel runner), `calibration.py` (temperature scaling),
 `check_contamination.py` (overlap scan against the suite).
 
 ## Setup
@@ -146,10 +151,10 @@ engines), `jev_di_shard.py` (parallel runner), `jev_calibration.py` (temperature
 `TOGETHER_API_KEY` (Tev comparison).
 - `pip install -r requirements.txt` (this folder). The Decision Index notebooks clone and install the
 board's kit ([apolinario/decision-index](https://github.com/apolinario/decision-index)) themselves.
-- `jev_embedder.ipynb` also needs a checkout of the [Fireworks cookbook](https://github.com/fw-ai/cookbook)
+- `scion_embedder_baselines.ipynb` also needs a checkout of the [Fireworks cookbook](https://github.com/fw-ai/cookbook)
 for its trainer utilities: set `COOKBOOK_DIR` (default `~/cookbook`).
 - Accept the [HLE dataset terms](https://huggingface.co/datasets/cais/hle) before building the suite.
 
-Large artifacts are gitignored and regenerated by the notebooks: `jev_runs/` (training files, eval
+Large artifacts are gitignored and regenerated by the notebooks: `runs/` (training files, eval
 results), `di_runs/` (Decision Index results), `di_suite-0.2/` and `di_work/` (the rebuilt suite,
 ~16 GB), and `decision-index/` (the cloned kit).

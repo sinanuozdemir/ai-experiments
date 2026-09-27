@@ -1,4 +1,4 @@
-"""Run one shard of the Decision Index suite through FireworksJevEngine.
+"""Run one shard of the Decision Index suite through ScionEngine.
 
 The kit's runner is sequential; the notebook launches several of these in parallel, each owning
 the requests whose run_id hashes to its shard, then merges their results.jsonl files for scoring.
@@ -18,7 +18,7 @@ p.add_argument("--shard", type=int, required=True)
 p.add_argument("--n-shards", type=int, required=True)
 p.add_argument("--out", required=True)
 p.add_argument("--engine-options", required=True, help="JSON dict")
-p.add_argument("--engine", default="jev_di_engine:FireworksJevEngine")
+p.add_argument("--engine", default="scion_engine:ScionEngine")
 a = p.parse_args()
 
 suite = Suite(a.suite_dir, "0.2")
