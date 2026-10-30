@@ -45,6 +45,7 @@ MODELS = [
     },
 ]
 
+LETTERS = "ABCDEFGH"
 N_PER_BENCH = 40
 SEED = 7
 CONCURRENCY = 6
@@ -84,10 +85,10 @@ def _extract_yes_no(s: str) -> str | None:
 
 
 def _extract_choice(s: str) -> str | None:
-    hits = list(re.finditer(r"\b([ABCD])\b", s.upper()))
+    hits = list(re.finditer(r"\b([A-H])\b", s.upper()))
     if hits:
         return hits[-1].group(1)
-    m = re.search(r"(?:answer|choice)\s*[:is]*\s*([ABCD])\b", s.upper())
+    m = re.search(r"(?:answer|choice)\s*[:is]*\s*([A-H])\b", s.upper())
     return m.group(1) if m else None
 
 
@@ -186,16 +187,18 @@ def build_rows(n: int, seed: int) -> list[dict]:
     rng.shuffle(idxs)
     for i in idxs[:n]:
         ex = arc[i]
-        choices = "\n".join(
-            f"{lab}. {txt}" for lab, txt in zip(ex["choices"]["label"], ex["choices"]["text"])
-        )
+        # Some ARC rows label their options "1".."4" instead of "A".."D"; relabel to letters so the
+        # options the model is shown match the letter the grader reads back.
+        labels, texts = list(ex["choices"]["label"]), list(ex["choices"]["text"])
+        letters = LETTERS[: len(labels)]
+        choices = "\n".join(f"{lab}. {txt}" for lab, txt in zip(letters, texts))
         rows.append(
             {
                 "bench": "arc_easy",
                 "kind": "choice",
                 "id": f"arc-{ex['id']}",
                 "prompt": f"{ex['question']}\n\n{choices}\n\nReply with the letter only.",
-                "gold": ex["answerKey"],
+                "gold": letters[labels.index(ex["answerKey"])],
             }
         )
 

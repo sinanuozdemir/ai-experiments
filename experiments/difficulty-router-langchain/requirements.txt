@@ -1,0 +1,11 @@
+langchain
+langchain-core
+langchain-fireworks
+langgraph
+fireworks-ai
+datasets
+python-dotenv
+numpy
+pandas
+matplotlib
+tqdm
