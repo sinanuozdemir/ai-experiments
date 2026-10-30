@@ -1,4 +1,4 @@
-# Sinan's AI Exepriment & Workshop Repo
+# Sinan's AI Experiment & Workshop Repo
 
 A single place for the random (brilliant) ideas that come to me on AI/ML stuff. The goal is for each one to be a runnable notebook so anyone can reproduce or just see the pathway + results.
 
