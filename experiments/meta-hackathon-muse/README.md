@@ -41,19 +41,19 @@ The notebook also plots published [Specialized Intelligence Index](https://firew
 
 ### Muse effort sweep — `muse_reasoning_sweep.ipynb`
 
-Same suite, Muse only, across its full effort ladder (Muse does not accept `none`).
+Same suite, Muse only, across all six effort levels (Muse rejects `none`).
 
-| Bench | low | medium | high | xhigh |
-|---|---:|---:|---:|---:|
-| GSM8K | **99** | **99** | 94 | 98 |
-| BoolQ | 90 | **93** | 86 | 89 |
-| NQ-Open | **69** | 67 | 64 | 66 |
-| ARC-Easy | **96** | 92 | 83 | 85 |
-| **Overall** | **88.5** | 87.8 | 81.8 | 84.5 |
+| Bench | minimal | low | medium | high | xhigh | max |
+|---|---:|---:|---:|---:|---:|---:|
+| GSM8K | 98 | **99** | **99** | 94 | 98 | 97 |
+| BoolQ | **93** | 90 | **93** | 86 | 89 | 84 |
+| NQ-Open | 64 | **69** | 67 | 64 | 66 | 65 |
+| ARC-Easy | 95 | **96** | 92 | 83 | 85 | 86 |
+| **Overall** | 87.5 | **88.5** | 87.8 | 81.8 | 84.5 | 83.0 |
 
 ![Muse pass@1 vs reasoning effort](muse_effort_sweep.png)
 
-On these easy tasks Muse peaks at `low`. Higher effort costs more tokens and lowers pass@1.
+On these easy tasks Muse peaks at `low`, with `minimal` and `medium` within a point. Higher effort costs more tokens and lowers pass@1. Part of the `max` drop is truncation: 19 of 400 `max` answers were empty because reasoning used up the 2,048-token output limit.
 
 ## Train Muse Glimmer as a router — `muse_glimmer_train_router.ipynb`
 

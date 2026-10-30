@@ -34,8 +34,8 @@ MODELS = [
         "label": "Muse Spark Open",
         "short": "muse",
         "model": "accounts/fireworks/models/muse-spark-open",
-        # Muse always reasons; valid ladder is low / medium / high / xhigh (no "none").
-        "efforts": ["low", "medium", "high", "xhigh"],
+        # Muse always reasons, so "none" is rejected.
+        "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"],
     },
     {
         "label": "DeepSeek V4.1 Flash",
