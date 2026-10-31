@@ -66,7 +66,7 @@ splits 118 / 128, which could easily be luck.
 from the ones we have: draw 60 drawings from our 60 at random, *with replacement* (some get picked twice, some not at
 all), and compute both systems' mean JSON F1 on that fake set. Repeat 5,000 times. If the same system comes out ahead in at least 97.5% of those fake test sets, the gap is real.
 
-![Bootstrap](figures/bootstrap.png)
+![Bootstrap](figures/bootstrap_resampling.png)
 
 In each chart, every bar counts fake test sets; the black line is a tie. The fine-tune beats the baseline on all
 5,000 (left). GPT-6.1 is ahead on 4,211 but behind on 789 (right), too often to call it a real win.
