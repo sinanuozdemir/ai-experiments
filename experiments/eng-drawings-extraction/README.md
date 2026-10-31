@@ -64,10 +64,12 @@ splits 118 / 128, which could easily be luck.
 
 **2. Bootstrap: would the gap survive a different test set?** We can't collect new drawings, so we fake new test sets
 from the ones we have: draw 60 drawings from our 60 at random, *with replacement* (some get picked twice, some not at
-all), and compute both systems' mean JSON F1 on that fake set. Repeat 5,000 times. If the gap stays on the same side of
-zero in the middle 95% of those fake test sets, it's real.
+all), and compute both systems' mean JSON F1 on that fake set. Repeat 5,000 times. If the same system comes out ahead in at least 97.5% of those fake test sets, the gap is real.
 
 ![Bootstrap](figures/bootstrap.png)
+
+In each chart, every bar counts fake test sets; the black line is a tie. The fine-tune beats the baseline on all
+5,000 (left). GPT-6.1 is ahead on 4,211 but behind on 789 (right), too often to call it a real win.
 
 Why both? McNemar is powerful because it has 1,791 fields to work with, but it has two blind spots: it only counts
 fields a system *found*, so inventing extra wrong fields isn't penalised, and it treats fields as independent when one

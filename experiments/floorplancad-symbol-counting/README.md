@@ -74,10 +74,12 @@ of 190, which a coin does 28% of the time, so that could be luck.
 
 **2. Bootstrap: would the gap survive a different test set?** We can't collect new floor plans, so we fake new test
 sets from the ones we have: draw 185 buildings from our 185 at random, *with replacement* (some get picked twice, some
-not at all), and score both systems on that fake set. Repeat 5,000 times. If the gap stays on the same side of zero
-in the middle 95% of those fake test sets, it's real.
+not at all), and score both systems on that fake set. Repeat 5,000 times. If the same system comes out ahead in at least 97.5% of those fake test sets, the gap is real.
 
 ![Bootstrap](figures/bootstrap.png)
+
+In each chart, every bar counts fake test sets; the black line is a tie. The fine-tune beats base GLM on all 5,000
+(left). Against Gemini (right) it's ahead on 4,254 and behind on 661, too often to call it a real win.
 
 We resample whole **buildings**, not single questions, on purpose: tiles from one building share a drawing style, so
 a model that misreads one building's door symbol misreads all of them. Treating those questions as independent would
