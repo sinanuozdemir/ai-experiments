@@ -20,6 +20,8 @@ pip install -r requirements.txt
 | Reasoning effort on UiPad vision QA | Does cranking up a model's reasoning effort actually improve accuracy? | [experiments/reasoning-effort-uipad](experiments/reasoning-effort-uipad/) |
 | Scion: Jev-style decision classifiers | Can small fine-tuned open models match Jev/Tev as calibrated decision engines on the Decision Index? | [experiments/scion](experiments/scion/) |
 | Difficulty router as LangChain middleware | Does routing easy tasks to a cheap model and hard ones to a strong model cut cost per successful task without losing accuracy? | [experiments/difficulty-router-langchain](experiments/difficulty-router-langchain/) |
+| FloorPlanCAD symbol counting | Can a small open vision model, fine-tuned, read real CAD floor plans as well as frontier models? (And what if the Hugging Face labels are scrambled?) | [experiments/floorplancad-symbol-counting](experiments/floorplancad-symbol-counting/) |
+| Engineering drawings → JSON | Do prompting and fine-tuning get a small open vision model past frontier models at extracting structured data from engineering drawings? | [experiments/eng-drawings-extraction](experiments/eng-drawings-extraction/) |
 | Meta hackathon: Muse open models | Does Muse Spark Open beat DeepSeek on short-answer text, does more reasoning effort help, and can a fine-tuned Muse Glimmer route prompts? | [experiments/meta-hackathon-muse](experiments/meta-hackathon-muse/) |
 
 Always more to come.
