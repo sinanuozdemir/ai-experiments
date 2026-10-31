@@ -85,6 +85,15 @@ than one built from independent questions.
 A gain that passes McNemar but not the bootstrap is likely driven by a handful of buildings. In practice the two
 agreed on every comparison below.
 
+![What the two significance tests see](figures/significance.png)
+
+How to read it: each row is one comparison. **Left (McNemar):** the bars are what a coin flip would give for the
+number of questions only A got right, if A and B were equally good. The black line is what actually happened. Against
+base GLM (top) it lands far beyond anything a coin flip produces; against Gemini (bottom) it sits inside the bulk, and
+the magenta area, the chance of a result at least that lopsided, is 28%. **Right (bootstrap):** the histogram is the
+accuracy gap across 5,000 resamples of buildings, and the shaded band is the 95% interval. The top band is far from
+zero; the bottom one straddles it.
+
 | Comparison | Gap | Questions only A / only B right | McNemar p | Building bootstrap 95% CI |
 | --- | --- | --- | --- | --- |
 | Fine-tune vs base GLM | +13.0 | 178 / 48 | 9e-19 | [+9.8, +16.0] |

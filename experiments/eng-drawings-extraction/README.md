@@ -74,6 +74,17 @@ metric, precision included, and it treats each drawing (with all of its correlat
 
 Both tests agreed on every comparison below.
 
+![What the two significance tests see](figures/significance.png)
+
+How to read it: each row is one comparison. **Left (McNemar):** the bars are what a coin flip would give for the
+number of fields only A got right, if A and B were equally good; the black line is what actually happened. For the
+fine-tune (top) it is 327 of 334 disagreements, off the chart for a coin flip. **Right (bootstrap):** the histogram is
+the mean-F1 gap across 5,000 resamples of drawings, and the shaded band is the 95% interval; it has to clear zero.
+
+The bottom row shows why both tests are needed. GPT-6.1 recovers slightly *fewer* gold fields than the baseline (118
+vs 128), yet its mean F1 is 0.9 points higher, because it adds fewer wrong fields: precision, which McNemar can't see.
+Neither difference is significant.
+
 | Comparison | Gap | Fields only A / only B right | McNemar p | Drawing bootstrap 95% CI |
 | --- | --- | --- | --- | --- |
 | 3-shot vs baseline | +8.4 | 206 / 26 | 6e-36 | [+6.7, +10.0] |

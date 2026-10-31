@@ -86,6 +86,56 @@ def loss_curve(metrics_path, title: str, subtitle: str = "", save: str | None = 
     show(fig, save)
 
 
+def significance_panels(rows: list[tuple[str, dict]], unit: str, cluster: str, metric: str,
+                        title: str, subtitle: str = "", save: str | None = None) -> None:
+    """One row per comparison: exact-McNemar null distribution (left) and cluster-bootstrap gap distribution (right).
+
+    Each ``rows`` entry is (label, compare() result with mcnemar.only_a/only_b and boot.delta/lo/hi/samples).
+    """
+    from math import comb
+
+    fig, axes = plt.subplots(len(rows), 2, figsize=(13, 3.3 * len(rows) + 1.3), squeeze=False,
+                             gridspec_kw={"wspace": 0.15, "hspace": 0.9})
+    _title(fig, title, subtitle)
+    for (label, r), (ax1, ax2) in zip(rows, axes):
+        a, b = r["mcnemar"]["only_a"], r["mcnemar"]["only_b"]
+        n = a + b
+        ks = np.arange(n + 1)
+        pmf = np.array([comb(n, k) for k in ks], float) / 2.0 ** n
+        tail = (ks <= min(a, b)) | (ks >= max(a, b))
+        ax1.bar(ks, pmf, width=1.0, color=np.where(tail, MAGENTA, PEACH), lw=0)
+        ax1.axvline(a, color=INK, lw=2)
+        ax1.set_ylim(0, pmf.max() * 1.5)
+        ax1.annotate(f"observed: {a}", (a, pmf.max() * 0.6), xytext=(-6, 0), textcoords="offset points", ha="right",
+                     fontsize=9.5, color=INK, fontweight="bold")
+        p = r["mcnemar"]["p"]
+        ax1.set_title(f"{label}\nMcNemar: {a} vs {b} disagreements · p = {p:.2g}", loc="left", fontsize=11)
+        ax1.set_xlabel(f"{unit}s only A got right, out of {n} disagreements\n(bars: what a coin flip would give if A and B were equally good)")
+        from matplotlib.patches import Patch
+        ax1.legend(handles=[Patch(color=PEACH, label="coin-flip outcomes"),
+                            Patch(color=MAGENTA, label="as or more extreme than observed (total area = p)")],
+                   loc="upper left", fontsize=9)
+        ax1.set_yticks([])
+        lo_x, hi_x = max(0, min(a, b, n // 2 - 4 * np.sqrt(n) / 2) - 3), min(n, max(a, b, n // 2 + 4 * np.sqrt(n) / 2) + 3)
+        ax1.set_xlim(lo_x, hi_x)
+
+        s = np.array(r["boot"]["samples"]) * 100
+        lo, hi, d = r["boot"]["lo"] * 100, r["boot"]["hi"] * 100, r["boot"]["delta"] * 100
+        counts, _, _ = ax2.hist(s, bins=50, color=PEACH, lw=0)
+        ax2.set_ylim(0, counts.max() * 1.6)
+        ax2.axvspan(lo, hi, color=CORAL, alpha=0.25, lw=0, label=f"95% CI [{lo:+.1f}, {hi:+.1f}]")
+        ax2.axvline(0, color=MUTED, lw=1.5, ls="--", label="no difference")
+        ax2.axvline(d, color=INK, lw=2, label=f"observed gap {d:+.1f}")
+        sig = lo > 0 or hi < 0
+        ax2.set_title(f"Bootstrap over {cluster}s: interval {'excludes' if sig else 'includes'} zero", loc="left", fontsize=11)
+        ax2.set_xlabel(f"gap in {metric}, A − B (points)\n(histogram: 5,000 resamples of {cluster}s)")
+        ax2.set_yticks([])
+        ax2.legend(loc="upper left", fontsize=9)
+        left = min(s.min(), 0) - 0.5
+        ax2.set_xlim(left, max(s.max(), 0) + 0.5)
+    show(fig, save)
+
+
 # ── Fireworks training cookbook ───────────────────────────────────────────────
 
 def ensure_cookbook() -> Path:
