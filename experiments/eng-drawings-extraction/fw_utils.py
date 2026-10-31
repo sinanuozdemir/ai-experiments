@@ -86,53 +86,89 @@ def loss_curve(metrics_path, title: str, subtitle: str = "", save: str | None = 
     show(fig, save)
 
 
-def significance_panels(rows: list[tuple[str, dict]], unit: str, cluster: str, metric: str,
-                        title: str, subtitle: str = "", save: str | None = None) -> None:
-    """One row per comparison: exact-McNemar null distribution (left) and cluster-bootstrap gap distribution (right).
+def mcnemar_figure(rows: list[tuple[str, str, str, dict]], unit: str, n_items: int, save: str | None = None) -> None:
+    """McNemar in one picture: ignore the agreements, then ask if the disagreements split 50 / 50 like a coin flip.
 
-    Each ``rows`` entry is (label, compare() result with mcnemar.only_a/only_b and boot.delta/lo/hi/samples).
+    Each ``rows`` entry is (A name, B name, verdict, compare() result with mcnemar.only_a / only_b).
     """
-    from math import comb
-
-    fig, axes = plt.subplots(len(rows), 2, figsize=(13, 3.3 * len(rows) + 1.3), squeeze=False,
-                             gridspec_kw={"wspace": 0.15, "hspace": 0.9})
-    _title(fig, title, subtitle)
-    for (label, r), (ax1, ax2) in zip(rows, axes):
+    fig = plt.figure(figsize=(12, 1.9 + 1.55 * len(rows)))
+    _title(fig, "McNemar's test: who wins the disagreements?",
+           f"Both systems answer the same {n_items:,} {unit}s. When they agree, it tells us nothing about which is better, "
+           f"so only the {unit}s where exactly one of them is right count.")
+    ax = fig.add_axes([0.03, 0.06, 0.94, fig.subplotpars.top - 0.1])
+    ax.set_xlim(0, 100); ax.set_ylim(len(rows) - 0.4, -0.75); ax.axis("off")
+    ax.text(50, -0.55, "a fair coin would split them 50 / 50", ha="center", fontsize=10, color=MUTED)
+    for i, (a_name, b_name, verdict, r) in enumerate(rows):
         a, b = r["mcnemar"]["only_a"], r["mcnemar"]["only_b"]
-        n = a + b
-        ks = np.arange(n + 1)
-        pmf = np.array([comb(n, k) for k in ks], float) / 2.0 ** n
-        tail = (ks <= min(a, b)) | (ks >= max(a, b))
-        ax1.bar(ks, pmf, width=1.0, color=np.where(tail, MAGENTA, PEACH), lw=0)
-        ax1.axvline(a, color=INK, lw=2)
-        ax1.set_ylim(0, pmf.max() * 1.5)
-        ax1.annotate(f"observed: {a}", (a, pmf.max() * 0.6), xytext=(-6, 0), textcoords="offset points", ha="right",
-                     fontsize=9.5, color=INK, fontweight="bold")
-        p = r["mcnemar"]["p"]
-        ax1.set_title(f"{label}\nMcNemar: {a} vs {b} disagreements · p = {p:.2g}", loc="left", fontsize=11)
-        ax1.set_xlabel(f"{unit}s only A got right, out of {n} disagreements\n(bars: what a coin flip would give if A and B were equally good)")
-        from matplotlib.patches import Patch
-        ax1.legend(handles=[Patch(color=PEACH, label="coin-flip outcomes"),
-                            Patch(color=MAGENTA, label="as or more extreme than observed (total area = p)")],
-                   loc="upper left", fontsize=9)
-        ax1.set_yticks([])
-        lo_x, hi_x = max(0, min(a, b, n // 2 - 4 * np.sqrt(n) / 2) - 3), min(n, max(a, b, n // 2 + 4 * np.sqrt(n) / 2) + 3)
-        ax1.set_xlim(lo_x, hi_x)
+        fa = 100 * a / (a + b)
+        ax.barh(i, fa, height=0.42, color=MAGENTA)
+        ax.barh(i, 100 - fa, left=fa, height=0.42, color=PEACH)
+        ax.text(1.2, i, f"only {a_name} right: {a}", va="center", color="white", fontsize=10.5, fontweight="bold")
+        ax.text(98.8, i, f"only {b_name} right: {b}", va="center", ha="right", color="white" if fa > 80 else INK,
+                fontsize=10.5, fontweight="bold")
+        ax.text(0, i - 0.36, f"{a_name} vs {b_name}: {a + b} disagreements", fontsize=11, color=INK)
+        ax.text(100, i - 0.36, verdict + f"  (p = {r['mcnemar']['p']:.2g})", fontsize=11, ha="right",
+                color=MAGENTA if r["mcnemar"]["p"] < 0.05 else MUTED, fontweight="bold")
+        ax.plot([50, 50], [i - 0.27, i + 0.27], color=INK, lw=1.5, ls=(0, (3, 2)))
+    show(fig, save)
 
-        s = np.array(r["boot"]["samples"]) * 100
-        lo, hi, d = r["boot"]["lo"] * 100, r["boot"]["hi"] * 100, r["boot"]["delta"] * 100
-        counts, _, _ = ax2.hist(s, bins=50, color=PEACH, lw=0)
-        ax2.set_ylim(0, counts.max() * 1.6)
-        ax2.axvspan(lo, hi, color=CORAL, alpha=0.25, lw=0, label=f"95% CI [{lo:+.1f}, {hi:+.1f}]")
-        ax2.axvline(0, color=MUTED, lw=1.5, ls="--", label="no difference")
-        ax2.axvline(d, color=INK, lw=2, label=f"observed gap {d:+.1f}")
+
+def bootstrap_figure(rows: list[tuple[str, dict]], n_clusters: int, cluster: str, metric: str,
+                     save: str | None = None, seed: int = 7) -> None:
+    """The bootstrap in one picture: resample the test set with replacement, recompute the gap, repeat, keep the middle 95%.
+
+    Each ``rows`` entry is (label, compare() result with boot.delta / lo / hi / samples).
+    """
+    rng = np.random.default_rng(seed)
+    fig = plt.figure(figsize=(12, 4.6 + 1.25 * len(rows)))
+    _title(fig, "Bootstrap: how much could the gap move with a different test set?",
+           f"We can't collect new {cluster}s, so we fake new test sets by drawing from our own {n_clusters} {cluster}s.")
+    show_n = 24
+    # step 1 and 2: the original set and one resample (showing 24 for readability)
+    for row, (label, picks) in enumerate([("1. Our test set", np.arange(show_n)),
+                                          ("2. One fake test set: draw the same number, with replacement",
+                                           np.sort(rng.integers(0, show_n, show_n)))]):
+        ax = fig.add_axes([0.03, 0.80 - row * 0.16 * 5.85 / (4.6 + 1.25 * len(rows)), 0.94, 0.07 * 5.85 / (4.6 + 1.25 * len(rows))])
+        ax.set_xlim(-0.5, show_n + 0.5); ax.set_ylim(-0.6, 1.4); ax.axis("off")
+        ax.text(-0.5, 1.15, label, fontsize=11, color=INK)
+        counts = np.bincount(picks, minlength=show_n)
+        for k in range(show_n):
+            c = counts[k] if row else 1
+            ax.add_patch(plt.Rectangle((k + 0.08, -0.45), 0.84, 1.1, color=[BLUSH, PEACH, CORAL, MAGENTA, INK][min(c, 4)], lw=0))
+            ax.text(k + 0.5, 0.1, (f"×{c}" if row else str(k + 1)) if c else "–", ha="center", va="center", fontsize=8,
+                    color="white" if c >= 2 else INK)
+        if row:
+            ax.text(show_n + 0.4, 0.1, f"some {cluster}s twice, some not at all", va="center", fontsize=9.5, color=MUTED)
+        else:
+            ax.text(show_n + 0.4, 0.1, f"… {n_clusters} {cluster}s", va="center", fontsize=9.5, color=MUTED)
+    # step 3: the 5,000 gaps as dots, middle 95% bracketed
+    top = 0.80 - 2 * 0.16 * 5.85 / (4.6 + 1.25 * len(rows))
+    ax = fig.add_axes([0.03, 0.08, 0.94, top - 0.04])
+    ax.axis("off")
+    allv = np.concatenate([np.array(r["boot"]["samples"]) * 100 for _, r in rows] + [[0.0]])
+    lo_x, hi_x = allv.min() - 1, allv.max() + 1
+    ax.set_xlim(lo_x, hi_x); ax.set_ylim(len(rows) - 0.3, -1.0)
+    ax.text(lo_x, -0.75, "3. Score both systems on each fake set and take the gap. Repeat 5,000 times. Keep the middle 95%.",
+            fontsize=11, color=INK)
+    ax.axvline(0, ymin=0.02, ymax=0.82, color=INK, lw=1.2, ls=(0, (3, 2)))
+    ax.text(0, len(rows) - 0.35, "no difference", ha="center", fontsize=9.5, color=INK)
+    for i, (label, r) in enumerate(rows):
+        v = np.array(r["boot"]["samples"]) * 100
+        sub = rng.choice(v, 400, replace=False)
+        ax.scatter(sub, i + rng.uniform(-0.13, 0.13, len(sub)), s=7, color=PEACH, lw=0)
+        lo, hi = r["boot"]["lo"] * 100, r["boot"]["hi"] * 100
         sig = lo > 0 or hi < 0
-        ax2.set_title(f"Bootstrap over {cluster}s: interval {'excludes' if sig else 'includes'} zero", loc="left", fontsize=11)
-        ax2.set_xlabel(f"gap in {metric}, A − B (points)\n(histogram: 5,000 resamples of {cluster}s)")
-        ax2.set_yticks([])
-        ax2.legend(loc="upper left", fontsize=9)
-        left = min(s.min(), 0) - 0.5
-        ax2.set_xlim(left, max(s.max(), 0) + 0.5)
+        ax.plot([lo, hi], [i + 0.24, i + 0.24], color=MAGENTA if sig else MUTED, lw=3)
+        for x in (lo, hi):
+            ax.plot([x, x], [i + 0.17, i + 0.31], color=MAGENTA if sig else MUTED, lw=3)
+        ax.text((lo + hi) / 2, i + 0.38, f"middle 95%: {lo:+.1f} to {hi:+.1f} points", ha="center", va="top", fontsize=9.5,
+                color=MAGENTA if sig else MUTED)
+        ax.text(lo_x, i - 0.3, label, fontsize=11, color=INK)
+        behind = int((v < 0).sum()) if r["boot"]["delta"] >= 0 else int((v > 0).sum())
+        verdict = (f"ahead in all {len(v):,} fake test sets" if behind == 0 else
+                   f"flips sign in {behind:,} of {len(v):,} ({behind / len(v):.0%})")
+        ax.text(hi_x, i - 0.3, verdict, fontsize=11, ha="right", color=MAGENTA if sig else MUTED, fontweight="bold")
+    ax.text(hi_x, len(rows) - 0.35, f"gap in {metric} (points) →", ha="right", fontsize=9.5, color=MUTED)
     show(fig, save)
 
 

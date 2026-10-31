@@ -58,41 +58,45 @@ Buildings are split 80 / 20, so no building is in both splits. Score: exact matc
 
 ### How we decide a difference is real
 
-Every system answers the same 1,000 questions, so each comparison is **paired**: for each question we know whether
-system A was right and whether system B was right. We call a difference significant only if it passes **two** tests
-at α = 0.05, because each one covers a weakness of the other.
+A model can beat another on one test set just by luck. We use two standard checks, and call a difference real only if
+it passes both.
 
-**1. Exact McNemar test (per question).** Questions both systems got right, or both got wrong, say nothing about which
-is better; only the disagreements do. Let *b* = questions only A got right and *c* = questions only B got right. If the
-two systems were equally good, each disagreement would be a coin flip, so under the null hypothesis
-*b* ~ Binomial(*b* + *c*, ½). The two-sided p-value is
+**1. McNemar's test: who wins the disagreements?** Both systems answer the same 1,000 questions. Questions they both
+get right, or both get wrong, say nothing about which is better, so we ignore them and look only at the questions
+where exactly one of them is right. If the two were equally good, those would split roughly 50 / 50, like a coin flip.
+McNemar's test asks how lopsided the split is, and how likely that would be by pure chance (the p-value; we need
+under 5%).
 
-  p = min(1, 2 · P(X ≤ min(*b*, *c*))), X ~ Binomial(*b* + *c*, ½)
+![McNemar's test](figures/mcnemar.png)
 
-We use the exact binomial form rather than the χ² approximation, because some comparisons have few disagreements.
-McNemar is the right test for paired right / wrong outcomes and uses the full question-level detail, but it assumes
-the questions are independent. They aren't quite: one tile yields two questions, and a building contributes many
-tiles drawn in the same style (same CAD layers, same symbol library), so a model that misreads one building's door
-symbol misreads all of them. Treating those as independent overstates the evidence.
+The fine-tune wins 178 of its 226 disagreements with base GLM: far too lopsided for a coin. Against Gemini it wins 103
+of 190, which a coin does 28% of the time, so that could be luck.
 
-**2. Building-level cluster bootstrap (on the accuracy gap).** To account for that, we resample whole buildings, the
-unit of the train / test split, instead of questions. With 185 test buildings, each of 5,000 replicates draws 185
-buildings with replacement, pools all of their questions, and recomputes the accuracy gap
-Δ = accuracy(A) − accuracy(B). The 95% confidence interval is the 2.5th to 97.5th percentile of those 5,000 gaps; it
-must exclude zero. Correlated questions move together inside a building, so this interval is wider, and more honest,
-than one built from independent questions.
+**2. Bootstrap: would the gap survive a different test set?** We can't collect new floor plans, so we fake new test
+sets from the ones we have: draw 185 buildings from our 185 at random, *with replacement* (some get picked twice, some
+not at all), and score both systems on that fake set. Repeat 5,000 times. If the gap stays on the same side of zero
+in the middle 95% of those fake test sets, it's real.
 
-A gain that passes McNemar but not the bootstrap is likely driven by a handful of buildings. In practice the two
-agreed on every comparison below.
+![Bootstrap](figures/bootstrap.png)
 
-![What the two significance tests see](figures/significance.png)
+We resample whole **buildings**, not single questions, on purpose: tiles from one building share a drawing style, so
+a model that misreads one building's door symbol misreads all of them. Treating those questions as independent would
+make us overconfident. McNemar treats every question as independent; the building bootstrap doesn't, which is why we
+use both. They agreed on every comparison below.
 
-How to read it: each row is one comparison. **Left (McNemar):** the bars are what a coin flip would give for the
-number of questions only A got right, if A and B were equally good. The black line is what actually happened. Against
-base GLM (top) it lands far beyond anything a coin flip produces; against Gemini (bottom) it sits inside the bulk, and
-the magenta area, the chance of a result at least that lopsided, is 28%. **Right (bootstrap):** the histogram is the
-accuracy gap across 5,000 resamples of buildings, and the shaded band is the 95% interval. The top band is far from
-zero; the bottom one straddles it.
+<details>
+<summary>The exact formulation</summary>
+
+- **Exact McNemar.** Let *b* = questions only A got right, *c* = questions only B got right. Under the null hypothesis
+  that A and B are equally good, *b* ~ Binomial(*b* + *c*, ½), and the two-sided p-value is
+  p = min(1, 2 · P(X ≤ min(*b*, *c*))), X ~ Binomial(*b* + *c*, ½). We use the exact binomial form rather than the χ²
+  approximation because some comparisons have few disagreements.
+- **Cluster bootstrap.** Each of 5,000 replicates draws 185 test buildings with replacement, pools all their questions,
+  and computes Δ = accuracy(A) − accuracy(B). The 95% confidence interval is the 2.5th to 97.5th percentile of the
+  5,000 values of Δ; it must exclude zero.
+- Significant means both: McNemar p < 0.05 **and** the bootstrap interval excludes zero.
+
+</details>
 
 | Comparison | Gap | Questions only A / only B right | McNemar p | Building bootstrap 95% CI |
 | --- | --- | --- | --- | --- |

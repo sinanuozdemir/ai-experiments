@@ -47,43 +47,50 @@ JSON as the exact output format. Every frontier model gets the same prompt.
 
 ### How we decide a difference is real
 
-There are only 60 test drawings, so a test on drawings alone has little power. But each drawing has dozens of gold
-fields, and every system is scored against the same ones, so the comparisons are **paired**. We call a difference
-significant only if it passes **two** tests at α = 0.05: one on fields, for power, and one on drawings, for honesty
-about correlation and about the metric we actually report.
+A model can beat another on one test set just by luck. We use two standard checks, and call a difference real only if
+it passes both.
 
-**1. Exact McNemar test (per gold field).** A gold field is one distinct `key path = value` leaf of a drawing's gold
-JSON. There are 1,791 across the 60 test drawings, after merging exact duplicates within a drawing. For each field and
-each system: did the output contain that exact pair? Fields both systems got, or both missed, say nothing about which
-is better; only the disagreements do. Let *b* = fields only A got and *c* = fields only B got. If the systems were
-equally good, each disagreement would be a coin flip, so under the null hypothesis *b* ~ Binomial(*b* + *c*, ½), and
+**1. McNemar's test: who wins the disagreements?** We break every test drawing into its gold fields (1,791 across the
+60 drawings, e.g. `title_block.material = 6061-T6 Aluminum`) and check, for each system, whether it got each field.
+Fields both systems got, or both missed, say nothing about which is better, so we ignore them and look only at the
+fields exactly one of them got. If the two were equally good, those would split roughly 50 / 50, like a coin flip.
+McNemar's test asks how lopsided the split is, and how likely that would be by pure chance (the p-value; we need
+under 5%).
 
-  p = min(1, 2 · P(X ≤ min(*b*, *c*))), X ~ Binomial(*b* + *c*, ½)
+![McNemar's test](figures/mcnemar.png)
 
-We use the exact binomial form, not the χ² approximation, because some comparisons have few disagreements (the
-fine-tune vs the best harness: 145 vs 5).
+The fine-tune wins 327 of its 334 disagreements with the baseline: nothing like a coin flip. GPT-6.1 vs the baseline
+splits 118 / 128, which could easily be luck.
 
-McNemar on fields has two blind spots. It measures **recall** only: a system that adds invented fields isn't
-penalised, while F1 is. And it treats fields as independent, which they aren't: one misread drawing, or one wrong key
-name, can sink a whole block of fields at once.
+**2. Bootstrap: would the gap survive a different test set?** We can't collect new drawings, so we fake new test sets
+from the ones we have: draw 60 drawings from our 60 at random, *with replacement* (some get picked twice, some not at
+all), and compute both systems' mean JSON F1 on that fake set. Repeat 5,000 times. If the gap stays on the same side of
+zero in the middle 95% of those fake test sets, it's real.
 
-**2. Drawing-level bootstrap (on mean JSON F1).** This covers both. For each drawing we have F1(A) and F1(B); each of
-5,000 replicates draws 60 drawings with replacement and recomputes the mean F1 gap Δ = mean F1(A) − mean F1(B). The 95%
-confidence interval is the 2.5th to 97.5th percentile of those gaps, and it must exclude zero. It's on the headline
-metric, precision included, and it treats each drawing (with all of its correlated fields) as one unit.
+![Bootstrap](figures/bootstrap.png)
 
-Both tests agreed on every comparison below.
+Why both? McNemar is powerful because it has 1,791 fields to work with, but it has two blind spots: it only counts
+fields a system *found*, so inventing extra wrong fields isn't penalised, and it treats fields as independent when one
+misread drawing can sink a whole block of them. The bootstrap fixes both: it uses the full F1 score (which does
+penalise invented fields) and resamples whole drawings. GPT-6.1 shows the difference: it finds slightly *fewer* gold
+fields than the baseline (118 vs 128), yet its F1 is 0.9 points higher because it invents fewer wrong ones. Neither
+difference is significant. The two tests agreed on every comparison below.
 
-![What the two significance tests see](figures/significance.png)
+<details>
+<summary>The exact formulation</summary>
 
-How to read it: each row is one comparison. **Left (McNemar):** the bars are what a coin flip would give for the
-number of fields only A got right, if A and B were equally good; the black line is what actually happened. For the
-fine-tune (top) it is 327 of 334 disagreements, off the chart for a coin flip. **Right (bootstrap):** the histogram is
-the mean-F1 gap across 5,000 resamples of drawings, and the shaded band is the 95% interval; it has to clear zero.
+- **Gold fields.** A field is one distinct `key path = value` leaf of a drawing's gold JSON; exact duplicates within a
+  drawing are merged, which is why there are 1,791 fields rather than 2,163.
+- **Exact McNemar.** Let *b* = fields only A got, *c* = fields only B got. Under the null hypothesis that A and B are
+  equally good, *b* ~ Binomial(*b* + *c*, ½), and the two-sided p-value is
+  p = min(1, 2 · P(X ≤ min(*b*, *c*))), X ~ Binomial(*b* + *c*, ½). We use the exact binomial form rather than the χ²
+  approximation because some comparisons have few disagreements (fine-tune vs best harness: 145 vs 5).
+- **Drawing bootstrap.** Each of 5,000 replicates draws 60 test drawings with replacement and computes
+  Δ = mean F1(A) − mean F1(B). The 95% confidence interval is the 2.5th to 97.5th percentile of the 5,000 values of Δ;
+  it must exclude zero.
+- Significant means both: McNemar p < 0.05 **and** the bootstrap interval excludes zero.
 
-The bottom row shows why both tests are needed. GPT-6.1 recovers slightly *fewer* gold fields than the baseline (118
-vs 128), yet its mean F1 is 0.9 points higher, because it adds fewer wrong fields: precision, which McNemar can't see.
-Neither difference is significant.
+</details>
 
 | Comparison | Gap | Fields only A / only B right | McNemar p | Drawing bootstrap 95% CI |
 | --- | --- | --- | --- | --- |
