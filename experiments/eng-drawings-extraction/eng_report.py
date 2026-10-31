@@ -71,7 +71,8 @@ def compare(a: str, b: str, B: int = 5000, seed: int = 42) -> dict | None:
             "field_acc_a": sum(fa) / len(fa), "field_acc_b": sum(fb) / len(fb),
             "mcnemar": {"only_a": only_a, "only_b": only_b, "p": p,
                         "both_right": sum(x and y for x, y in zip(fa, fb)), "both_wrong": sum(not x and not y for x, y in zip(fa, fb))},
-            "boot": {"delta": obs, "lo": s[int(0.025 * B)], "hi": s[int(0.975 * B) - 1], "p": bp, "samples": s}}
+            "boot": {"delta": obs, "lo": s[int(0.025 * B)], "hi": s[int(0.975 * B) - 1], "p": bp, "samples": s},
+            "units": [(i, float(x), float(y)) for i, x, y in zip(ids, da, db)]}
 
 
 def significance_table(pairs, B: int = 5000) -> pd.DataFrame:

@@ -67,7 +67,8 @@ def compare(a: str, b: str, B: int = 5000) -> dict | None:
     bc = [Bm[i]["score"] >= 1 for i in ids]
     return {"a": a, "b": b, "n": len(ids), "acc_a": sum(ac) / len(ids), "acc_b": sum(bc) / len(ids),
             "mcnemar": {**mcnemar(ac, bc), "both_right": sum(x and y for x, y in zip(ac, bc)),
-                        "both_wrong": sum(not x and not y for x, y in zip(ac, bc))}, "boot": block_bootstrap([(A[i]["building"], x, y) for i, x, y in zip(ids, ac, bc)], B)}
+                        "both_wrong": sum(not x and not y for x, y in zip(ac, bc))}, "boot": block_bootstrap(units := [(A[i]["building"], x, y) for i, x, y in zip(ids, ac, bc)], B),
+            "units": units}
 
 
 def significance_table(pairs: list[tuple[str, str]], B: int = 5000) -> pd.DataFrame:

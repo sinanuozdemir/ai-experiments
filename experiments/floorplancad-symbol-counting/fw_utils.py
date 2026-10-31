@@ -141,20 +141,20 @@ def mcnemar_figure(rows: list[tuple[str, str, str, dict]], unit: str, n_items: i
 
 def bootstrap_figure(rows: list[tuple[str, str, dict]], n_clusters: int, cluster: str, metric: str,
                      save: str | None = None, seed: int = 7) -> None:
-    """The bootstrap in one picture: resample the test set with replacement, recompute the gap, repeat 5,000 times.
+    """The bootstrap step by step: one fake test set, both scores on it, their gap, then 5,000 gaps stacked into a chart.
 
-    Each ``rows`` entry is (A name, B name, compare() result with boot.delta / samples).
+    Each ``rows`` entry is (A name, B name, compare() result with boot.samples and units = [(cluster id, A value, B value)]).
     """
     rng = np.random.default_rng(seed)
-    fig = plt.figure(figsize=(12, 8.2))
+    fig = plt.figure(figsize=(12, 10.6))
     _title(fig, "Bootstrap: would the gap survive a different test set?",
            f"We can't collect new {cluster}s, so we make 5,000 fake test sets out of our own {n_clusters} {cluster}s. "
            f"Significant = the same system wins at least 97.5% of them.")
     show_n = 24
     for row, (label, picks) in enumerate([(f"Step 1. Our real test set ({n_clusters} {cluster}s; first {show_n} shown)", np.arange(show_n)),
-                                          (f"Step 2. A fake test set: pick {n_clusters} {cluster}s at random from the real ones, allowing repeats",
+                                          (f"Step 2. Make a fake test set: pick {n_clusters} {cluster}s at random from the real ones, allowing repeats",
                                            np.sort(rng.integers(0, show_n, show_n)))]):
-        ax = fig.add_axes([0.03, 0.80 - row * 0.115, 0.94, 0.055])
+        ax = fig.add_axes([0.03, 0.835 - row * 0.09, 0.94, 0.042])
         ax.set_xlim(-0.5, show_n + 0.5); ax.set_ylim(-0.6, 1.5); ax.axis("off")
         ax.text(-0.5, 1.2, label, fontsize=11, color=INK)
         counts = np.bincount(picks, minlength=show_n)
@@ -165,10 +165,36 @@ def bootstrap_figure(rows: list[tuple[str, str, dict]], n_clusters: int, cluster
                     color="white" if c >= 2 else INK)
         if row:
             ax.text(show_n + 0.4, 0.1, "×2 = picked twice, – = left out", va="center", fontsize=9.5, color=MUTED)
-    fig.text(0.03, 0.585, f"Step 3. Score both systems on the fake test set and note the gap. Do it 5,000 times. "
-                          f"Each chart below is one comparison.", fontsize=11, color=INK)
-    for i, (a_name, b_name, r) in enumerate(rows):
-        ax = fig.add_axes([0.05 + i * 0.49, 0.1, 0.42, 0.34])
+
+    # one concrete fake test set per comparison: score both systems, subtract
+    examples = []
+    for a_name, b_name, r in rows:
+        by = {}
+        for c, x, y in r["units"]:
+            by.setdefault(c, []).append((x, y))
+        keys = list(by)
+        pick = [keys[k] for k in rng.integers(0, len(keys), len(keys))]
+        pairs = [xy for k in pick for xy in by[k]]
+        sa, sb = 100 * np.mean([x for x, _ in pairs]), 100 * np.mean([y for _, y in pairs])
+        examples.append((sa, sb, sa - sb))
+    fig.text(0.03, 0.70, "Step 3. Score both systems on that fake test set, and subtract. That gives one number:", fontsize=11, color=INK)
+    for i, ((a_name, b_name, r), (sa, sb, gap)) in enumerate(zip(rows, examples)):
+        ax = fig.add_axes([0.05 + i * 0.49, 0.585, 0.42, 0.065])
+        ax.set_xlim(0, 10); ax.set_ylim(0, 1); ax.axis("off")
+        for x0, w, top, bottom, col, tc in [(0, 3.1, f"{sa:.1f}%", a_name, MAGENTA, "white"),
+                                            (3.6, 3.1, f"{sb:.1f}%", b_name, PEACH, INK),
+                                            (7.2, 2.8, f"{gap:+.1f}", "gap (points)", INK, "white")]:
+            ax.add_patch(plt.Rectangle((x0, 0.0), w, 1.0, color=col, lw=0))
+            ax.text(x0 + w / 2, 0.62, top, ha="center", va="center", fontsize=13, fontweight="bold", color=tc)
+            ax.text(x0 + w / 2, 0.22, bottom, ha="center", va="center", fontsize=8.5, color=tc)
+        ax.text(3.35, 0.5, "−", ha="center", va="center", fontsize=18, color=INK)
+        ax.text(6.95, 0.5, "=", ha="center", va="center", fontsize=18, color=INK)
+        ax.text(0, 1.18, f"Comparison {i + 1}: {a_name} vs {b_name} ({metric})", fontsize=10.5, color=INK)
+    fig.text(0.03, 0.515, "Step 4. Repeat steps 2 and 3 5,000 times and stack up the 5,000 gaps. "
+                          "Each bar counts how many fake test sets gave that gap.", fontsize=11, color=INK)
+
+    for i, ((a_name, b_name, r), (_, _, gap)) in enumerate(zip(rows, examples)):
+        ax = fig.add_axes([0.05 + i * 0.49, 0.08, 0.42, 0.31])
         v = np.array(r["boot"]["samples"]) * 100
         bins = np.linspace(min(v.min(), -0.5), max(v.max(), 0.5), 45)
         hist, edges = np.histogram(v, bins=bins)
@@ -176,6 +202,9 @@ def bootstrap_figure(rows: list[tuple[str, str, dict]], n_clusters: int, cluster
         ax.bar(centers, hist, width=edges[1] - edges[0], color=np.where(centers >= 0, MAGENTA, PEACH), lw=0)
         ax.axvline(0, color=INK, lw=1.5)
         ax.text(0, hist.max() * 1.08, " 0 = tie", fontsize=9.5, color=INK, va="bottom")
+        k = int(np.clip(np.searchsorted(edges, gap) - 1, 0, len(hist) - 1))
+        ax.annotate(f"step 3's gap ({gap:+.1f})", xy=(gap, hist[k]), xytext=(gap, hist.max() * 1.18), ha="center",
+                    fontsize=9.5, color=INK, arrowprops=dict(arrowstyle="->", color=INK, lw=1.4))
         ahead = int((v > 0).sum())
         sig = ahead >= 0.975 * len(v) or ahead <= 0.025 * len(v)
         ax.set_title(f"Comparison {i + 1}: {a_name} vs {b_name}", loc="left", fontsize=11.5, pad=44)
@@ -183,9 +212,9 @@ def bootstrap_figure(rows: list[tuple[str, str, dict]], n_clusters: int, cluster
                 fontweight="bold", color=GOOD if sig else MUTED)
         ax.text(0, 1.03, f"{a_name} ahead on {ahead:,} of {len(v):,} fake test sets", transform=ax.transAxes, fontsize=10.5,
                 color=INK)
-        ax.set_xlabel(f"{metric} of {a_name} minus {b_name} (points)\n← {b_name} ahead · {a_name} ahead →")
+        ax.set_xlabel(f"gap: {metric} of {a_name} minus {b_name} (points)\n← {b_name} ahead · {a_name} ahead →")
         ax.set_ylabel("number of fake test sets")
-        ax.set_ylim(0, hist.max() * 1.25)
+        ax.set_ylim(0, hist.max() * 1.35)
         ax.grid(axis="y", visible=False)
     show(fig, save)
 

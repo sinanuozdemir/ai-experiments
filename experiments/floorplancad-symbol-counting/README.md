@@ -76,9 +76,10 @@ of 190, which a coin does 28% of the time, so that could be luck.
 sets from the ones we have: draw 185 buildings from our 185 at random, *with replacement* (some get picked twice, some
 not at all), and score both systems on that fake set. Repeat 5,000 times. If the same system comes out ahead in at least 97.5% of those fake test sets, the gap is real.
 
-![Bootstrap](figures/significance_bootstrap.png)
+![Bootstrap](figures/significance_bootstrap_steps.png)
 
-In each chart, every bar counts fake test sets; the black line is a tie. The fine-tune beats base GLM on all 5,000
+Step 3 shows one fake test set worked through: on it the fine-tune scored 76.9% and base GLM 63.0%, a gap of +13.9.
+Step 4 does that 5,000 times and counts the gaps; the black line is a tie. The fine-tune beats base GLM on all 5,000
 (left). Against Gemini (right) it's ahead on 4,254 and behind on 661, too often to call it a real win.
 
 We resample whole **buildings**, not single questions, on purpose: tiles from one building share a drawing style, so
