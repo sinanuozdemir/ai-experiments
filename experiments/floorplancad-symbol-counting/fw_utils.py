@@ -27,6 +27,7 @@ CORAL = "#EE7D5D"
 ORANGE = "#FFA57C"
 PEACH = "#FED2A1"
 BLUSH = "#F5E2E6"
+GOOD = "#2E7D4F"
 SUNSET = LinearSegmentedColormap.from_list("sunset", [BG, PEACH, ORANGE, CORAL, MAGENTA, INK])
 FIGS = HERE / "figures"
 
@@ -91,10 +92,10 @@ def mcnemar_figure(rows: list[tuple[str, str, str, dict]], unit: str, n_items: i
 
     Each ``rows`` entry is (A name, B name, verdict, compare() result with mcnemar.only_a / only_b / both_right / both_wrong).
     """
-    fig = plt.figure(figsize=(13, 1.6 + 2.7 * len(rows)))
+    fig = plt.figure(figsize=(13, 1.6 + 3.0 * len(rows)))
     _title(fig, "McNemar's test: who wins the disagreements?",
-           f"Both systems answer the same {n_items:,} {unit}s. Sort them into a 2×2 table; only the two cells where they "
-           f"disagree count.")
+           f"Both systems answer the same {n_items:,} {unit}s; only the two cells where they disagree count. "
+           f"Significant = the split is too lopsided to be a coin flip (p < 0.05).")
     top = fig.subplotpars.top
     h = (top - 0.04) / len(rows)
     for i, (a_name, b_name, verdict, r) in enumerate(rows):
@@ -102,7 +103,7 @@ def mcnemar_figure(rows: list[tuple[str, str, str, dict]], unit: str, n_items: i
         a, b = m["only_a"], m["only_b"]
         y0 = top - (i + 1) * h
         # 2x2 table
-        ax = fig.add_axes([0.03, y0 + 0.02, 0.36, h - 0.07])
+        ax = fig.add_axes([0.03, y0 + 0.02, 0.36, h - 0.1])
         ax.set_xlim(-1.25, 2); ax.set_ylim(2.55, -0.6); ax.axis("off")
         ax.text(1, -0.45, f"{b_name}", ha="center", fontsize=10.5, color=INK, fontweight="bold")
         ax.text(0.5, -0.12, "right", ha="center", fontsize=9.5, color=MUTED)
@@ -118,7 +119,7 @@ def mcnemar_figure(rows: list[tuple[str, str, str, dict]], unit: str, n_items: i
             ax.text(cx + 0.5, cy + 0.72, lab + ("  (ignored)" if col == BLUSH else ""), ha="center", va="center",
                     fontsize=8.5, color=tc)
         # disagreement split
-        ax = fig.add_axes([0.44, y0 + 0.02, 0.54, h - 0.07])
+        ax = fig.add_axes([0.44, y0 + 0.02, 0.54, h - 0.1])
         ax.set_xlim(0, 100); ax.set_ylim(1.2, -1.0); ax.axis("off")
         fa = 100 * a / (a + b)
         ax.text(0, -0.75, f"Only the {a + b:,} disagreements: a fair coin would split them 50 / 50", fontsize=11, color=INK)
@@ -131,8 +132,10 @@ def mcnemar_figure(rows: list[tuple[str, str, str, dict]], unit: str, n_items: i
             ax.text(100, 0.55, f"only {b_name}: {b}", va="top", ha="right", color=INK, fontsize=10.5, fontweight="bold")
         else:
             ax.text(98.8, 0, f"only {b_name}: {b}", va="center", ha="right", color=INK, fontsize=10.5, fontweight="bold")
-        ax.text(0, 0.95, f"{verdict}  (p = {m['p']:.2g})", fontsize=11.5, color=MAGENTA if m["p"] < 0.05 else MUTED,
-                fontweight="bold")
+        sig = m["p"] < 0.05
+        fig.text(0.03, y0 + h - 0.012, (f"✓ SIGNIFICANT: {a_name} is really better" if sig else
+                                        "✗ NOT SIGNIFICANT: the difference could be luck") + f"   (p = {m['p']:.2g})",
+                 fontsize=13, fontweight="bold", color=GOOD if sig else MUTED, va="top")
     show(fig, save)
 
 
@@ -145,7 +148,8 @@ def bootstrap_figure(rows: list[tuple[str, str, dict]], n_clusters: int, cluster
     rng = np.random.default_rng(seed)
     fig = plt.figure(figsize=(12, 8.2))
     _title(fig, "Bootstrap: would the gap survive a different test set?",
-           f"We can't collect new {cluster}s, so we make 5,000 fake test sets out of our own {n_clusters} {cluster}s.")
+           f"We can't collect new {cluster}s, so we make 5,000 fake test sets out of our own {n_clusters} {cluster}s. "
+           f"Significant = the same system wins at least 97.5% of them.")
     show_n = 24
     for row, (label, picks) in enumerate([(f"Step 1. Our real test set ({n_clusters} {cluster}s; first {show_n} shown)", np.arange(show_n)),
                                           (f"Step 2. A fake test set: pick {n_clusters} {cluster}s at random from the real ones, allowing repeats",
@@ -164,7 +168,7 @@ def bootstrap_figure(rows: list[tuple[str, str, dict]], n_clusters: int, cluster
     fig.text(0.03, 0.585, f"Step 3. Score both systems on the fake test set and note the gap. Do it 5,000 times. "
                           f"Each chart below is one comparison.", fontsize=11, color=INK)
     for i, (a_name, b_name, r) in enumerate(rows):
-        ax = fig.add_axes([0.05 + i * 0.49, 0.1, 0.42, 0.38])
+        ax = fig.add_axes([0.05 + i * 0.49, 0.1, 0.42, 0.34])
         v = np.array(r["boot"]["samples"]) * 100
         bins = np.linspace(min(v.min(), -0.5), max(v.max(), 0.5), 45)
         hist, edges = np.histogram(v, bins=bins)
@@ -173,9 +177,12 @@ def bootstrap_figure(rows: list[tuple[str, str, dict]], n_clusters: int, cluster
         ax.axvline(0, color=INK, lw=1.5)
         ax.text(0, hist.max() * 1.08, " 0 = tie", fontsize=9.5, color=INK, va="bottom")
         ahead = int((v > 0).sum())
-        ax.set_title(f"Comparison {i + 1}: {a_name} vs {b_name}", loc="left", fontsize=11.5, pad=26)
+        sig = ahead >= 0.975 * len(v) or ahead <= 0.025 * len(v)
+        ax.set_title(f"Comparison {i + 1}: {a_name} vs {b_name}", loc="left", fontsize=11.5, pad=44)
+        ax.text(0, 1.12, "✓ SIGNIFICANT" if sig else "✗ NOT SIGNIFICANT", transform=ax.transAxes, fontsize=13,
+                fontweight="bold", color=GOOD if sig else MUTED)
         ax.text(0, 1.03, f"{a_name} ahead on {ahead:,} of {len(v):,} fake test sets", transform=ax.transAxes, fontsize=10.5,
-                color=MAGENTA if ahead >= 0.975 * len(v) or ahead <= 0.025 * len(v) else MUTED, fontweight="bold")
+                color=INK)
         ax.set_xlabel(f"{metric} of {a_name} minus {b_name} (points)\n← {b_name} ahead · {a_name} ahead →")
         ax.set_ylabel("number of fake test sets")
         ax.set_ylim(0, hist.max() * 1.25)

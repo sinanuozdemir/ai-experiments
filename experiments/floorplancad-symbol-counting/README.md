@@ -67,7 +67,7 @@ where exactly one of them is right. If the two were equally good, those would sp
 McNemar's test asks how lopsided the split is, and how likely that would be by pure chance (the p-value; we need
 under 5%).
 
-![McNemar's test](figures/mcnemar_table.png)
+![McNemar's test](figures/significance_mcnemar.png)
 
 The fine-tune wins 178 of its 226 disagreements with base GLM: far too lopsided for a coin. Against Gemini it wins 103
 of 190, which a coin does 28% of the time, so that could be luck.
@@ -76,7 +76,7 @@ of 190, which a coin does 28% of the time, so that could be luck.
 sets from the ones we have: draw 185 buildings from our 185 at random, *with replacement* (some get picked twice, some
 not at all), and score both systems on that fake set. Repeat 5,000 times. If the same system comes out ahead in at least 97.5% of those fake test sets, the gap is real.
 
-![Bootstrap](figures/bootstrap_resampling.png)
+![Bootstrap](figures/significance_bootstrap.png)
 
 In each chart, every bar counts fake test sets; the black line is a tie. The fine-tune beats base GLM on all 5,000
 (left). Against Gemini (right) it's ahead on 4,254 and behind on 661, too often to call it a real win.
