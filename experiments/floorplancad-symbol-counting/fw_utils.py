@@ -87,29 +87,52 @@ def loss_curve(metrics_path, title: str, subtitle: str = "", save: str | None = 
 
 
 def mcnemar_figure(rows: list[tuple[str, str, str, dict]], unit: str, n_items: int, save: str | None = None) -> None:
-    """McNemar in one picture: ignore the agreements, then ask if the disagreements split 50 / 50 like a coin flip.
+    """McNemar in one picture per comparison: the 2x2 table (agreements ignored), then the disagreement split vs a coin flip.
 
-    Each ``rows`` entry is (A name, B name, verdict, compare() result with mcnemar.only_a / only_b).
+    Each ``rows`` entry is (A name, B name, verdict, compare() result with mcnemar.only_a / only_b / both_right / both_wrong).
     """
-    fig = plt.figure(figsize=(12, 1.9 + 1.55 * len(rows)))
+    fig = plt.figure(figsize=(13, 1.6 + 2.7 * len(rows)))
     _title(fig, "McNemar's test: who wins the disagreements?",
-           f"Both systems answer the same {n_items:,} {unit}s. When they agree, it tells us nothing about which is better, "
-           f"so only the {unit}s where exactly one of them is right count.")
-    ax = fig.add_axes([0.03, 0.06, 0.94, fig.subplotpars.top - 0.1])
-    ax.set_xlim(0, 100); ax.set_ylim(len(rows) - 0.4, -0.75); ax.axis("off")
-    ax.text(50, -0.55, "a fair coin would split them 50 / 50", ha="center", fontsize=10, color=MUTED)
+           f"Both systems answer the same {n_items:,} {unit}s. Sort them into a 2×2 table; only the two cells where they "
+           f"disagree count.")
+    top = fig.subplotpars.top
+    h = (top - 0.04) / len(rows)
     for i, (a_name, b_name, verdict, r) in enumerate(rows):
-        a, b = r["mcnemar"]["only_a"], r["mcnemar"]["only_b"]
+        m = r["mcnemar"]
+        a, b = m["only_a"], m["only_b"]
+        y0 = top - (i + 1) * h
+        # 2x2 table
+        ax = fig.add_axes([0.03, y0 + 0.02, 0.36, h - 0.07])
+        ax.set_xlim(-1.25, 2); ax.set_ylim(2.55, -0.6); ax.axis("off")
+        ax.text(1, -0.45, f"{b_name}", ha="center", fontsize=10.5, color=INK, fontweight="bold")
+        ax.text(0.5, -0.12, "right", ha="center", fontsize=9.5, color=MUTED)
+        ax.text(1.5, -0.12, "wrong", ha="center", fontsize=9.5, color=MUTED)
+        ax.text(-1.2, 1, f"{a_name}", va="center", fontsize=10.5, color=INK, fontweight="bold")
+        ax.text(-0.08, 0.5, "right", ha="right", va="center", fontsize=9.5, color=MUTED)
+        ax.text(-0.08, 1.5, "wrong", ha="right", va="center", fontsize=9.5, color=MUTED)
+        cells = [(0, 0, m["both_right"], "both right", BLUSH, MUTED), (1, 0, a, f"only {a_name}", MAGENTA, "white"),
+                 (0, 1, b, f"only {b_name}", PEACH, INK), (1, 1, m["both_wrong"], "both wrong", BLUSH, MUTED)]
+        for cx, cy, n, lab, col, tc in cells:
+            ax.add_patch(plt.Rectangle((cx + 0.03, cy + 0.03), 0.94, 0.94, color=col, lw=0))
+            ax.text(cx + 0.5, cy + 0.42, f"{n:,}", ha="center", va="center", fontsize=14, color=tc, fontweight="bold")
+            ax.text(cx + 0.5, cy + 0.72, lab + ("  (ignored)" if col == BLUSH else ""), ha="center", va="center",
+                    fontsize=8.5, color=tc)
+        # disagreement split
+        ax = fig.add_axes([0.44, y0 + 0.02, 0.54, h - 0.07])
+        ax.set_xlim(0, 100); ax.set_ylim(1.2, -1.0); ax.axis("off")
         fa = 100 * a / (a + b)
-        ax.barh(i, fa, height=0.42, color=MAGENTA)
-        ax.barh(i, 100 - fa, left=fa, height=0.42, color=PEACH)
-        ax.text(1.2, i, f"only {a_name} right: {a}", va="center", color="white", fontsize=10.5, fontweight="bold")
-        ax.text(98.8, i, f"only {b_name} right: {b}", va="center", ha="right", color="white" if fa > 80 else INK,
-                fontsize=10.5, fontweight="bold")
-        ax.text(0, i - 0.36, f"{a_name} vs {b_name}: {a + b} disagreements", fontsize=11, color=INK)
-        ax.text(100, i - 0.36, verdict + f"  (p = {r['mcnemar']['p']:.2g})", fontsize=11, ha="right",
-                color=MAGENTA if r["mcnemar"]["p"] < 0.05 else MUTED, fontweight="bold")
-        ax.plot([50, 50], [i - 0.27, i + 0.27], color=INK, lw=1.5, ls=(0, (3, 2)))
+        ax.text(0, -0.75, f"Only the {a + b:,} disagreements: a fair coin would split them 50 / 50", fontsize=11, color=INK)
+        ax.barh(0, fa, height=0.55, color=MAGENTA)
+        ax.barh(0, 100 - fa, left=fa, height=0.55, color=PEACH)
+        ax.plot([50, 50], [-0.38, 0.38], color=INK, lw=1.5, ls=(0, (3, 2)))
+        ax.text(50, 0.55, "50 / 50", ha="center", va="top", fontsize=9, color=INK)
+        ax.text(1.2, 0, f"only {a_name}: {a}", va="center", color="white", fontsize=10.5, fontweight="bold")
+        if fa > 72:
+            ax.text(100, 0.55, f"only {b_name}: {b}", va="top", ha="right", color=INK, fontsize=10.5, fontweight="bold")
+        else:
+            ax.text(98.8, 0, f"only {b_name}: {b}", va="center", ha="right", color=INK, fontsize=10.5, fontweight="bold")
+        ax.text(0, 0.95, f"{verdict}  (p = {m['p']:.2g})", fontsize=11.5, color=MAGENTA if m["p"] < 0.05 else MUTED,
+                fontweight="bold")
     show(fig, save)
 
 

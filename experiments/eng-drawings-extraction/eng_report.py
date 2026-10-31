@@ -69,7 +69,8 @@ def compare(a: str, b: str, B: int = 5000, seed: int = 42) -> dict | None:
     bp = min(1.0, 2 * sum(x <= 0 for x in s) / B) if obs >= 0 else min(1.0, 2 * sum(x >= 0 for x in s) / B)
     return {"n_receipts": len(ids), "n_fields": len(fa), "f1_a": float(da.mean()), "f1_b": float(db.mean()),
             "field_acc_a": sum(fa) / len(fa), "field_acc_b": sum(fb) / len(fb),
-            "mcnemar": {"only_a": only_a, "only_b": only_b, "p": p},
+            "mcnemar": {"only_a": only_a, "only_b": only_b, "p": p,
+                        "both_right": sum(x and y for x, y in zip(fa, fb)), "both_wrong": sum(not x and not y for x, y in zip(fa, fb))},
             "boot": {"delta": obs, "lo": s[int(0.025 * B)], "hi": s[int(0.975 * B) - 1], "p": bp, "samples": s}}
 
 

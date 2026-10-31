@@ -57,7 +57,7 @@ fields exactly one of them got. If the two were equally good, those would split 
 McNemar's test asks how lopsided the split is, and how likely that would be by pure chance (the p-value; we need
 under 5%).
 
-![McNemar's test](figures/mcnemar.png)
+![McNemar's test](figures/mcnemar_table.png)
 
 The fine-tune wins 327 of its 334 disagreements with the baseline: nothing like a coin flip. GPT-6.1 vs the baseline
 splits 118 / 128, which could easily be luck.

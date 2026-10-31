@@ -67,7 +67,7 @@ where exactly one of them is right. If the two were equally good, those would sp
 McNemar's test asks how lopsided the split is, and how likely that would be by pure chance (the p-value; we need
 under 5%).
 
-![McNemar's test](figures/mcnemar.png)
+![McNemar's test](figures/mcnemar_table.png)
 
 The fine-tune wins 178 of its 226 disagreements with base GLM: far too lopsided for a coin. Against Gemini it wins 103
 of 190, which a coin does 28% of the time, so that could be luck.
